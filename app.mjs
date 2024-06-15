@@ -26,19 +26,34 @@ app.use(bodyParser.json());
 
 app.get('/data', (req, res) => {
     const sortBy = req.query.sortBy;
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+    const offset = (page - 1) * limit;
+    
     let sql = 'SELECT * FROM scores';
     if (sortBy) {
         sql += ` ORDER BY ${sortBy} DESC`;
     }
+    sql += ` LIMIT ${limit} OFFSET ${offset}`;
 
     db.all(sql, (err, rows) => {
         if (err) {
             res.status(500).json({ message: err.message });
         } else {
-            res.status(200).send(rows);
+            db.get('SELECT COUNT(*) AS count FROM scores', (err, result) => {
+                if (err) {
+                    res.status(500).json({ message: err.message });
+                } else {
+                    res.status(200).json({ 
+                        data: rows, 
+                        totalCount: result.count 
+                    });
+                }
+            });
         }
     });
 });
+
 
 app.post('/data', (req, res) => {
     const { firstName, lastName, age, score } = req.body;
